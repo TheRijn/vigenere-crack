@@ -1,28 +1,29 @@
 import operator
 from argparse import ArgumentParser
 
-MIN_LENGTH = 2
-MAX_LENGTH = 13
 P_I_ENGLISH = [0.082, 0.015, 0.028, 0.042, 0.127, 0.022, 0.020, 0.061, 0.070,
                0.001, 0.008, 0.040, 0.024, 0.067, 0.075, 0.019, 0.001, 0.060,
                0.063, 0.090, 0.028, 0.001, 0.024, 0.002, 0.001, 0.001]
+P_I_DUTCH = [0.0749, 0.0158, 0.0124, 0.0593, 0.1891, 0.0081, 0.03, 0.0238, 0.07,
+             0.0146, 0.0225, 0.0357, 0.0221, 0.1003, 0.0606, 0.0157, 0.00009,
+             0.0641, 0.0373, 0.0679, 0.0199, 0.0285, 0.0152, 0.000, 0.00035, 0.0139]
 P_I_2_ENGLISH = 0.065
+P_I_2_DUTCH = 0.080
 
 Specials = dict[int, str]
 
-def main(ciphertext: str):
+def decrypt(ciphertext: str, *, min_length=2, max_length=12):
 
     ciphertext_clean, specials = remove_specials(ciphertext)
 
-    key_length = find_key_length(ciphertext_clean)
-    print("Key length:", key_length)
+    key_length = find_key_length(ciphertext_clean, min_length=min_length, max_length=max_length)
 
     key_values = find_key(ciphertext_clean, key_length)
-    print("Key       :", "".join(chr(c + ord('a')) for c in key_values))
+    key = "".join(chr(c + ord('a')) for c in key_values)
 
-    plaintext_clean = decrypt(ciphertext_clean, key_values)
+    plaintext_clean = decrypt_with_key(ciphertext_clean, key_values)
     plaintext = insert_specials(plaintext_clean, specials)
-    print(plaintext)
+    return key, plaintext
 
 
 def remove_specials(ciphertext: str) -> tuple[str, Specials]:
@@ -57,12 +58,12 @@ def insert_specials(clean_string, specials: Specials) -> str:
     return output
 
 
-def find_key_length(cipher_array):
+def find_key_length(cipher_array, *, min_length, max_length):
     # Difference between p_i^2 and q_i^2
     diff_pi2_qi2 = {}
 
     # Iterate over all possible keylengths
-    for n in range(MIN_LENGTH, MAX_LENGTH + 1):
+    for n in range(min_length, max_length + 1):
         # List for q_0 ... q_25
         hist = [0 for _ in range(26)]
 
@@ -109,7 +110,7 @@ def find_key(ciphertext: str, key_length: int):
     return key
 
 
-def decrypt(ciphertext, keyword) -> str:
+def decrypt_with_key(ciphertext, keyword) -> str:
 
     plaintext = ""
 
@@ -133,4 +134,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("ciphertext", help="ciphertext to decrypt")
     args = parser.parse_args()
-    main(args.ciphertext)
+
+    key, plaintext = decrypt(args.ciphertext)
+    print("Key      :", key)
+    print("Plaintext:", plaintext)
